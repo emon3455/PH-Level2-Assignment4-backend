@@ -13,15 +13,36 @@ export const createBook = async (req: Request, res: Response, next: NextFunction
 
 export const getAllBooks = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { filter, sortBy = 'createdAt', sort = 'desc', limit = '10' } = req.query;
+    const {
+      filter,
+      sortBy = 'createdAt',
+      sort = 'desc',
+      limit = '10',
+      page = '1',
+    } = req.query;
+
     const query: any = {};
     if (filter) query.genre = filter;
 
     const books = await Book.find(query)
       .sort({ [sortBy as string]: sort === 'asc' ? 1 : -1 })
-      .limit(parseInt(limit as string));
+      .limit(parseInt(limit as string))
+      .skip((parseInt(page as string) - 1) * parseInt(limit as string));
 
-    sendResponse(res, { success: true, message: 'Books retrieved successfully', data: books });
+    const total = await Book.countDocuments(query);
+
+    sendResponse(res, {
+      success: true,
+      message: 'Books retrieved successfully',
+      data: {
+        books,
+        meta: {
+          total,
+          limit: Number(limit),
+          page: Number(page),
+        },
+      },
+    });
   } catch (err) {
     next(err);
   }
