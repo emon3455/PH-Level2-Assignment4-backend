@@ -15,6 +15,7 @@ export const getAllBooks = async (req: Request, res: Response, next: NextFunctio
   try {
     const {
       filter,
+      searchTerm,    // <-- Add searchTerm from query
       sortBy = 'createdAt',
       sort = 'desc',
       limit = '10',
@@ -22,7 +23,14 @@ export const getAllBooks = async (req: Request, res: Response, next: NextFunctio
     } = req.query;
 
     const query: any = {};
+
+    // Filter by genre if provided
     if (filter) query.genre = filter;
+
+    // Search by title if searchTerm is provided (case-insensitive regex)
+    if (searchTerm) {
+      query.title = { $regex: searchTerm as string, $options: "i" };
+    }
 
     const books = await Book.find(query)
       .sort({ [sortBy as string]: sort === 'asc' ? 1 : -1 })
@@ -47,6 +55,7 @@ export const getAllBooks = async (req: Request, res: Response, next: NextFunctio
     next(err);
   }
 };
+
 
 export const getBookById = async (req: Request, res: Response, next: NextFunction) => {
   try {

@@ -15,10 +15,16 @@ const createBook = async (req, res, next) => {
 exports.createBook = createBook;
 const getAllBooks = async (req, res, next) => {
     try {
-        const { filter, sortBy = 'createdAt', sort = 'desc', limit = '10', page = '1', } = req.query;
+        const { filter, searchTerm, // <-- Add searchTerm from query
+        sortBy = 'createdAt', sort = 'desc', limit = '10', page = '1', } = req.query;
         const query = {};
+        // Filter by genre if provided
         if (filter)
             query.genre = filter;
+        // Search by title if searchTerm is provided (case-insensitive regex)
+        if (searchTerm) {
+            query.title = { $regex: searchTerm, $options: "i" };
+        }
         const books = await book_model_1.Book.find(query)
             .sort({ [sortBy]: sort === 'asc' ? 1 : -1 })
             .limit(parseInt(limit))
