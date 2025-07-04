@@ -59,12 +59,28 @@ export const getBookById = async (req: Request, res: Response, next: NextFunctio
 
 export const updateBook = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const book = await Book.findByIdAndUpdate(req.params.bookId, req.body, { new: true });
-    sendResponse(res, { success: true, message: 'Book updated successfully', data: book });
+    const book = await Book.findById(req.params.bookId);
+
+    if (!book) {
+      return res.status(404).json({ success: false, message: "Book not found" });
+    }
+
+    Object.assign(book, req.body);
+
+    book.updateAvailability();
+
+    await book.save();
+
+    sendResponse(res, {
+      success: true,
+      message: "Book updated successfully",
+      data: book,
+    });
   } catch (err) {
     next(err);
   }
 };
+
 
 export const deleteBook = async (req: Request, res: Response, next: NextFunction) => {
   try {
