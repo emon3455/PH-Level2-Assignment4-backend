@@ -62,13 +62,23 @@ export const updateBook = async (req: Request, res: Response, next: NextFunction
     const book = await Book.findById(req.params.bookId);
 
     if (!book) {
-      return res.status(404).json({ success: false, message: "Book not found" });
+      return sendResponse(res, {
+        success: false,
+        message: "Book not found",
+        data: null,
+      });
     }
 
-    Object.assign(book, req.body);
+    const { title, author, genre, isbn, description, copies } = req.body;
 
-    book.updateAvailability();
+    if (title !== undefined) book.title = title;
+    if (author !== undefined) book.author = author;
+    if (genre !== undefined) book.genre = genre;
+    if (isbn !== undefined) book.isbn = isbn;
+    if (description !== undefined) book.description = description;
+    if (copies !== undefined) book.copies = copies;
 
+    book.updateAvailability?.();
     await book.save();
 
     sendResponse(res, {
@@ -80,6 +90,7 @@ export const updateBook = async (req: Request, res: Response, next: NextFunction
     next(err);
   }
 };
+
 
 
 export const deleteBook = async (req: Request, res: Response, next: NextFunction) => {

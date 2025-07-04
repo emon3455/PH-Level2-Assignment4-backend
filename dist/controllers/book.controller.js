@@ -15,14 +15,27 @@ const createBook = async (req, res, next) => {
 exports.createBook = createBook;
 const getAllBooks = async (req, res, next) => {
     try {
-        const { filter, sortBy = 'createdAt', sort = 'desc', limit = '10' } = req.query;
+        const { filter, sortBy = 'createdAt', sort = 'desc', limit = '10', page = '1', } = req.query;
         const query = {};
         if (filter)
             query.genre = filter;
         const books = await book_model_1.Book.find(query)
             .sort({ [sortBy]: sort === 'asc' ? 1 : -1 })
-            .limit(parseInt(limit));
-        (0, sendResponse_1.sendResponse)(res, { success: true, message: 'Books retrieved successfully', data: books });
+            .limit(parseInt(limit))
+            .skip((parseInt(page) - 1) * parseInt(limit));
+        const total = await book_model_1.Book.countDocuments(query);
+        (0, sendResponse_1.sendResponse)(res, {
+            success: true,
+            message: 'Books retrieved successfully',
+            data: {
+                books,
+                meta: {
+                    total,
+                    limit: Number(limit),
+                    page: Number(page),
+                },
+            },
+        });
     }
     catch (err) {
         next(err);
@@ -41,8 +54,34 @@ const getBookById = async (req, res, next) => {
 exports.getBookById = getBookById;
 const updateBook = async (req, res, next) => {
     try {
-        const book = await book_model_1.Book.findByIdAndUpdate(req.params.bookId, req.body, { new: true });
-        (0, sendResponse_1.sendResponse)(res, { success: true, message: 'Book updated successfully', data: book });
+        const book = await book_model_1.Book.findById(req.params.bookId);
+        if (!book) {
+            return (0, sendResponse_1.sendResponse)(res, {
+                success: false,
+                message: "Book not found",
+                data: null,
+            });
+        }
+        const { title, author, genre, isbn, description, copies } = req.body;
+        if (title !== undefined)
+            book.title = title;
+        if (author !== undefined)
+            book.author = author;
+        if (genre !== undefined)
+            book.genre = genre;
+        if (isbn !== undefined)
+            book.isbn = isbn;
+        if (description !== undefined)
+            book.description = description;
+        if (copies !== undefined)
+            book.copies = copies;
+        book.updateAvailability?.();
+        await book.save();
+        (0, sendResponse_1.sendResponse)(res, {
+            success: true,
+            message: "Book updated successfully",
+            data: book,
+        });
     }
     catch (err) {
         next(err);
